@@ -972,7 +972,7 @@ describe('WdioBridgeReporter', () => {
                     return { module, test }
                 }
 
-                it('sends one hook pair per kind and attempt around the test events, as a sequential Mocha run', async () => {
+                it('sends one hook pair per kind and attempt, with the afterEach of a retried attempt before its test:retry', async () => {
                     const { module, test } = build(passed, [
                         call('a0', 0), withHooks(0, 'failed', bothHooks, { message: 'f1' }),
                         call('a1', 1), withHooks(1, 'failed', bothHooks, { message: 'f2' }),
@@ -982,8 +982,8 @@ describe('WdioBridgeReporter', () => {
 
                     const hook = (attempt: string, kind: string) => [`hook:start(test-0-0-0${attempt}-${kind})`, `hook:end(test-0-0-0${attempt}-${kind})`]
                     expect(hookSequence()).toEqual([
-                        'test:start(test-0-0-0)', ...hook('', 'beforeEach'), 'test:retry(test-0-0-0)', ...hook('', 'afterEach'),
-                        'test:start(test-0-0-0-retry-1)', ...hook('-retry-1', 'beforeEach'), 'test:retry(test-0-0-0-retry-1)', ...hook('-retry-1', 'afterEach'),
+                        'test:start(test-0-0-0)', ...hook('', 'beforeEach'), ...hook('', 'afterEach'), 'test:retry(test-0-0-0)',
+                        'test:start(test-0-0-0-retry-1)', ...hook('-retry-1', 'beforeEach'), ...hook('-retry-1', 'afterEach'), 'test:retry(test-0-0-0-retry-1)',
                         'test:start(test-0-0-0-retry-2)', ...hook('-retry-2', 'beforeEach'), 'test:pass(test-0-0-0-retry-2)', 'test:end(test-0-0-0-retry-2)', ...hook('-retry-2', 'afterEach')
                     ])
                     const uids = emittedOf().filter(([name]) => name.startsWith('hook:start')).map(([, payload]) => payload.uid)
@@ -1016,7 +1016,7 @@ describe('WdioBridgeReporter', () => {
                     await runTests(module, test)
 
                     expect(hookSequence().slice(0, 5)).toEqual([
-                        'test:start(test-0-0-0)', 'hook:start(test-0-0-0-beforeEach)', 'hook:end(test-0-0-0-beforeEach)', 'test:retry(test-0-0-0)', 'hook:start(test-0-0-0-afterEach)'
+                        'test:start(test-0-0-0)', 'hook:start(test-0-0-0-beforeEach)', 'hook:end(test-0-0-0-beforeEach)', 'hook:start(test-0-0-0-afterEach)', 'hook:end(test-0-0-0-afterEach)'
                     ])
                     const end = emittedOf().find(([name, payload]) => name === 'hook:end' && payload.uid === 'test-0-0-0-beforeEach')![1]
                     expect(end).toMatchObject({ state: 'fail', error: { name: 'Error', message: 'be', stack: 's' } })

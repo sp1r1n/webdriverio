@@ -136,12 +136,13 @@ export class WdioBridgeReporter implements Reporter {
                 }
                 this.#emitHook(run, retryBase, 'beforeEach', marker, true)
                 this.#replay(run, calls)
+                // test:retry closes the attempt, so a failed afterEach sent after it would become a result of its own in Allure
+                this.#emitHook(run, retryBase, 'afterEach', marker, true)
                 const times = marker ? { start: marker.start, end: marker.end } : {}
                 this.#emit(run, 'test:retry', {
                     ...retryBase, ...times, duration: marker ? marker.end - marker.start : 0, pending: false,
                     error: toErrorPayload(marker?.error ?? { message: 'test failed' })
                 })
-                this.#emitHook(run, retryBase, 'afterEach', marker, true)
             })
             const last = this.#attemptBase(base, finalAttempt)
             if (finalAttempt > 0) {
